@@ -196,6 +196,10 @@ https://demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.ocp4-wo
 
    You should see the pipeline <u>**FAIL**</u> because there is no trainable data available just yet.
 
+   Note
+   現状、Pipeline実行時にlxmlのImportエラーが出るため、各タスクへ以下を追記する
+   sh -c "python3 -m pip install lxml==5.1.0"
+
 1. Upload training data to S3.
 
    There are two options to upload training data:
