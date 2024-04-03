@@ -210,38 +210,45 @@ oc create -f deployment/pipeline/pvc.yaml
       curl https://skupper.io/install.sh | sh
       export PATH="/home/user/.local/bin:$PATH"
       ```
+
    2. `central` namespaceで *Service Interconnect* をイニシャライズ
+
       ``` bash
       oc project central
       skupper init --enable-console --enable-flow-collector --console-auth unsecured
       ```
+
    3. `central` namespace接続用のトークンを作成
       ``` bash
       skupper token create edge_to_central.token
       ```
-    4. `edge1`namespaceで *Service Interconnect* をイニシャライズ
+
+   4. `edge1` namespaceで *Service Interconnect* をイニシャライズ
+
       ``` bash
       oc project edge1
       skupper init
       ```
-    5. `edge1` namespaceと`central` namespaceを接続するリンクを生成
-        ``` bash
-        skupper link create edge_to_central.token --name edge-to-central
-        ```
-    6. S3 storage service (*Minio*)を `central` namespaceから `edge1` namespaceへ公開
-        ``` bash
-        oc project central
-        kubectl annotate service minio-service skupper.io/proxy=http skupper.io/address=minio-central
-        ```
-    7. 接続テスト
-       ```
-       oc project edge1
-       oc create route edge --service=minio-central --port=port9090
-       ```
-       新しく作成したRoute `minio-central` を使って Minio のコンソールを開いてみてください。表示されるバケットが `central` のものであることを確認してください。
-       サービスが正常であることを確認したら、ルートを削除できます。
 
-### Deliver the AI/ML model and run the ML server
+   5. `edge1` namespaceと`central` namespaceを接続するリンクを生成
+      ``` bash
+      skupper link create edge_to_central.token --name edge-to-central
+      ```
+   6. S3 storage service (*Minio*)を `central` namespaceから `edge1` namespaceへ公開
+      ``` bash
+      oc project central
+      kubectl annotate service minio-service skupper.io/proxy=http skupper.io/address=minio-central
+      ```
+   7. 接続テスト
+      ```
+      oc project edge1
+      oc create route edge --service=minio-central --port=port9090
+      ```
+
+新しく作成したRoute `minio-central` を使って Minio のコンソールを開いてみてください。表示されるバケットが `central` のものであることを確認してください。
+サービスが正常であることを確認したら、ルートを削除できます。
+
+## 4. AI/MLモデルを配信し、MLサーバーを実行する。
 
 1. Deploy the *Edge Manager*. \
    Deploy in the new `edge1` namespace. \
