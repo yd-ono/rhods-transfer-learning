@@ -1,81 +1,73 @@
 # rhods-transfer-learning
 
-This project contains resources to showcase a full circle continuous motion of data to capture training data, train new ML models, deploy them, serve them, and expose the service for clients to send inference requests.
+本リポジトリは、[このリポジトリ](https://github.com/brunoNetId/rhods-transfer-learning)のforkです。
 
-   > [!CAUTION] 
-   > This project is still under construction. The instructions below are temporary and will change as the project evolves.
+本リポジトリには、エッジ側のシステムから訓練データを取得し、新しいMLモデルを学習し、学習したMLモデルをデプロイし、アプリケーションとして提供し、クライアントが推論リクエストを送るためのサービスを公開する、データの一連の流れを示すリソースが含まれています。
 
-RHODS artifacts are not YAML editable, they require UI interaction. \
-Although tedious and time consuming, by the end of the deployment procedure (below), you will be able to understand how the full cycle connects all the stages together (acquisition, training, delivery, inferencing).
+   > [!注意]
+   > このプロジェクトはまだ作成中です。以下の説明は一時的なものであり、プロジェクトの進展に伴い変更されます。
 
-## Tested with
+OpenShift AIのアーティファクトはYAMLでは編集できません。
+以下のデプロイ手順は、面倒で時間がかかりますが、全サイクルがどのようにすべてのステージ(取得、トレーニング、配信、推論)を結びつけるかを理解できるようになります。
 
-* RHODS 2.5.0 provided by Red Hat
+## テスト済みの環境
+
+* Red Hat OpenShift AI 2.5.0 provided by Red Hat
 * RHO Pipelines 1.10.4 provided by Red Hat
 * AMQ-Streams 2.6.0-0 provided by Red Hat
 * AMQ Broker 7.11.4 provided by Red Hat
 * Red Hat build of Apache Camel 4
 * Camel K 1.10 provided by Red Hat
 
-## Deployment instructions
+## デプロイ手順
 
-The following list summarises the steps to deploy the demo:
+以下のリストは、デモを展開する手順をまとめたものです。
 
-1. Provision a RHODS environment
-1. Create and prepare a RHODS project.
-1. Create and run the AI/ML Pipeline.
-1. Deliver the AI/ML model and run the ML server.
-1. Create a trigger for the Pipeline.
-3. Deploy the data ingestion system.
-1. Test the end to end solution.
+1. OpenShift AIのプロビジョニング
+2. OpenShift AIのデータサイエンス・プロジェクトを作成し、準備する。
+3. AI/MLパイプラインを作成し、実行する。
+4. AI/MLモデルを配信し、MLサーバーを実行する。
+5. パイプラインのトリガーを作成する。
+6. データ取り込みシステムをデプロイする。
+7. エンド・ツー・エンドのソリューションをテストする。
 
-<br/>
 
-### Provision a RHODS environment
+### OpenShift AIのプロビジョニング
 
-1. Provision the following RHDP item:
+#### 1. 以下のRHDSより環境を払い出します。
    * Base RHODS on AWS: \
 https://demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.ocp4-workshop-rhods-base-aws.prod&utm_source=webapp&utm_medium=share-link
 
-2. Log in using your environment credentials.
+#### 2. 払い出された環境へログインします。
 
-<br/>
+### OpenShift AIにてデータサイエンス・プロジェクトの作成
 
-### Create a RHODS project
+#### 1. MinIOのデプロイ
 
-1. Deploy an instance of Minio
-   
-   1. Create a new project, named `central`
-   3. Under the `central` project, deploy the following YAML resource:
-      * **deployment/central/minio.yaml**
+```
+oc new-project central
+oc apply deployment/central/minio.yaml
+```
 
-1. Create necessary S3 buckets
-   
-   1. Open the Minio UI (2 routes: use _UI Route_)
-   2. Login with `minio/minio123`
-   3. Create buckets for RHODS:
+#### 2. 必要なS3バケットの作成
+
+   1. MinIO UIを開く (2 routes: use _UI Route_)
+   2. `minio/minio123`でログイン
+   3. OpenShift AI用のバケットの作成
       * **workbench**
-   3. Create buckets for Edge-1:
+   4. エッジ環境向けのバケットを作成
       * **edge1-data**
       * **edge1-models**
       * **edge1-ready**
 
-      <br/>
+1. 新しい *Data Science Project* を作成
 
-   3. [OPTIONAL] Create buckets for Edge-2: \
-      (Not needed for standard demo)
-      * **edge2-data**
-      * **edge2-models**
-      * **edge2-ready**
+   * *Red Hat OpenShift AI*を開く
+   * 環境へログイン
+   * *Data Science Projects* を選択して、`Create data science project`をクリック
+   * Data Science Projectの名前は `tf` (TensorFlow) とする
 
-1. Create a new *Data Science Project*.
-
-   Open *Red Hat OpenShift AI* (also known as RHODS). \
-   Log in using your environment credentials. \
-   Select *Data Science Projects* and click `Create data science project`. \
-   As a name, use for example `tf` (TensorFlow)
-
-1. Create a new *Data Connection*.
+2. 新しい *Data Connection* を作成
 
    Under the new `tf` project > Data connections, click `Add data connection`. \
    Enter the following parameters:
@@ -86,7 +78,7 @@ https://demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.ocp4-wo
    * Region: `eu-west-2`
    * Bucket: `workbench`
 
-1. Create a *Pipeline Server*.
+3. Create a *Pipeline Server*.
 
    Under the new `tf` project > Pipelines, click `Create a pipeline server`. \
    Enter the following parameters:
@@ -94,13 +86,13 @@ https://demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.ocp4-wo
 
    Then click `Configure` to proceed.
 
-1. Create a '*PersistentVolumeClaim*' for the pipeline.
+4. Create a '*PersistentVolumeClaim*' for the pipeline.
 
    The PVC will enable shared storage for the pipeline's execution. \
    Deploy the following YAML resource:
       * **deployment/pipeline/pvc.yaml**
 
-1. Create a new *Workbench*.
+5. Create a new *Workbench*.
 
    Under the new `tf` project > Workbenches, click `Create workbench`. \
    Enter the following parameters:
@@ -116,7 +108,7 @@ https://demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.ocp4-wo
 
    Then click `Create workbench`
 
-1. Open the workbench (*Jupyter*).
+6. Open the workbench (*Jupyter*).
 
    When your workbench is in *Running* status, click `Open`.
 
@@ -553,3 +545,27 @@ Under the `edge1` namespace, perform the following actions:
     oc create route edge camel-edge --service shopper
     ```
    Use the route URL to connect from a browser.
+
+
+https://camel-edge-edge1.apps.demo.sandbox1117.opentlc.com/monitor.html
+https://camel-edge-edge1.apps.demo.sandbox1117.opentlc.com/admin.html
+
+
+## Filestash
+```
+oc project edge1
+helm repo add filestash https://sebagarayco.github.io/helm-filestash
+helm search repo filestash
+helm install filestash filestash/filestash --namespace='edge1' --set serviceAccount.name='filestash'
+oc adm policy add-scc-to-user anyuid -z filestash
+oc expose service filestash -n edge1
+```
+
+## AKHQ
+```
+oc project central
+helm repo add akhq https://akhq.io/
+helm inspect values akhq/akhq
+helm upgrade --install akhq akhq/akhq --set secrets.akhq.connections.my-cluster-plain-text.properties.bootstrap.servers=my-cluster-kafka-bootstrap:9092
+oc expose service akhq -n central
+```
