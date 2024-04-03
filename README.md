@@ -29,7 +29,7 @@ OpenShift AIのアーティファクトはYAMLでは編集できません。
 4. AI/MLモデルを配信し、MLサーバーを実行する。
 5. パイプラインのトリガーを作成する。
 6. データ取り込みシステムをデプロイする。
-7. エンド・ツー・エンドのソリューションをテストする。
+7. エンド・ツー・エンドでソリューションをテストする。
 
 ## Central環境の準備
 ### 1. OpenShift AIのプロビジョニング
@@ -250,15 +250,15 @@ oc create -f deployment/pipeline/pvc.yaml
 
 ## 4. AI/MLモデルを配信し、MLサーバーを実行する。
 
-1. Deploy the *Edge Manager*. \
-   Deploy in the new `edge1` namespace. \
+### *Edge Manager*のデプロイ
+Deploy in the new `edge1` namespace. \
    Follow instructions under:
     * **camel/edge-manager/Readme.txt** 
     
     The *Edge Manager* moves available models from the `edge1-ready` (central) to `production` (edge1). \
     When the pod starts, you will see the model available in `production`.
 
-1. Deploy the TensorFlow server.
+### Deploy the TensorFlow server.
 
    Under the `edge1` project, deploy the following YAML resource:
       * **deployment/edge/tensorflow.yaml** 
@@ -273,9 +273,9 @@ oc create -f deployment/pipeline/pvc.yaml
       ```bash
       cd client
       ```
-   1. Edit the `infer.sh` script and configure the `server` url with your TensorFlow server's route.
+   2. Edit the `infer.sh` script and configure the `server` url with your TensorFlow server's route.
 
-   1. Run the script:
+   3. Run the script:
       ```
       ./infer.sh
       ```
@@ -284,9 +284,7 @@ oc create -f deployment/pipeline/pvc.yaml
       "predictions": ["tea-green", "0.838234"]
       ```
 
-<br/>
-
-### Create a trigger for the Pipeline
+## 5. パイプラインのトリガーを作成する。
 
 1. Create a Pipeline trigger.
 
@@ -354,7 +352,7 @@ oc create -f deployment/pipeline/pvc.yaml
 <br/>
 
 
-### Deploy the data ingestion system
+## 6. データ取り込みシステムをデプロイする。
 
 A *Camel* service deployed on *Central* will be ready listening for requests to ingest training data.
 
@@ -388,7 +386,7 @@ Upon receiving data ingestion requests, Camel will:
 
 <br/>
 
-### Test the end to end solution
+## 7. エンド・ツー・エンドでソリューションをテストする。
 
 This final test validates all the platform stages are healthy. We should see the following processes in motion:
 
