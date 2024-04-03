@@ -94,21 +94,20 @@ oc create -f deployment/pipeline/pvc.yaml
 ### 3. AI/MLパイプラインを作成し、実行する。
 
    1. パイプラインソースをJupyter Notebookへインポート
+      > [!CAUTION] 
+      > プロジェクトのアップロードに*'Git Clone'*を使わないでください。大きな画像のデータセットをアップロードする必要はありません！
 
-   > [!CAUTION] 
-   > プロジェクトのアップロードに*'Git Clone'*を使わないでください。大きな画像のデータセットをアップロードする必要はありません！
+      以下の画像の通り、メニューバーの下にあるアイコン`Upload Files`をクリックします。
+      ![Import](./images/project-import.png)
 
-   以下の画像の通り、メニューバーの下にあるアイコン`Upload Files`をクリックします。
-    ![Import](./images/project-import.png)
-
-  　以下のファイルをインポートします。
+   　以下のファイルをインポートします。
    * **workbench/clean-01.ipynb** 
    * **workbench/pipeline/step-01.ipynb**
    * **workbench/pipeline/step-02.ipynb**
    * **workbench/pipeline/step-03.ipynb**
    * **workbench/pipeline/retrain.pipeline** -> *Elyra* pipeline
 
-   2. *Tekton Pipeline*のyamlファイルのエクスポート
+   1. *Tekton Pipeline*のyamlファイルのエクスポート
       1. `retrain.pipeline`リソースをダブルクリックします。
       2. パイプラインが*Elyra* (Jupyterの組み込みビジュアルパイプラインエディタ)に表示されます。
       3. 以下の画像の通り、`Export Pipeline`を押下します。
@@ -160,13 +159,13 @@ oc create -f deployment/pipeline/pvc.yaml
    パイプラインをテストするには、`Action > Start` をクリックし、デフォルト値を受け入れ、`Start` をクリックします。
    現時点ではバケットに学習用データが存在しないため、パイプラインが <u>**FAIL**</u> と表示されるはずです。
 
-   1. MinIOへ学習用データのアップロード
+   2. MinIOへ学習用データのアップロード
       1. MinIOのUIコンソールを使って画像ファイルをアップロードします。
          1. 画像ファイルは以下のフォルダに格納されています。フォルダごとアップロードしてください。
             1. `dataset/images`
          2. `edge1-data` バケットにアップロードします。(全ての画像ファイルが完全にアップロードされるまで待ちましょう)
 
-   2. モデルの学習
+   3. モデルの学習
       1. すべての画像のアップロードが完了したら、`Action > Start` をクリックしてパイプラインを再実行し、デフォルトの値で `Start` をクリックします。これでパイプラインが成功するはずです。パイプラインは新しいモデルを以下のバケットにプッシュします。
          1. `edge1-models`
          2. `edge1-ready`
