@@ -4,7 +4,7 @@
 
 本リポジトリには、エッジ側のシステムから訓練データを取得し、新しいMLモデルを学習し、学習したMLモデルをデプロイし、アプリケーションとして提供し、クライアントが推論リクエストを送るためのサービスを公開する、データの一連の流れを示すリソースが含まれています。
 
-   > [!注意]
+   > [!CAUTION]
    > このプロジェクトはまだ作成中です。以下の説明は一時的なものであり、プロジェクトの進展に伴い変更されます。
 
 OpenShift AIのアーティファクトはYAMLでは編集できません。
@@ -24,7 +24,7 @@ OpenShift AIのアーティファクトはYAMLでは編集できません。
 以下のリストは、デモを展開する手順をまとめたものです。
 
 1. OpenShift AIのプロビジョニング
-2. OpenShift AIのデータサイエンス・プロジェクトを作成し、準備する。
+2. OpenShift AIのデータサイエンス・プロジェクトを作成
 3. AI/MLパイプラインを作成し、実行する。
 4. AI/MLモデルを配信し、MLサーバーを実行する。
 5. パイプラインのトリガーを作成する。
@@ -32,157 +32,125 @@ OpenShift AIのアーティファクトはYAMLでは編集できません。
 7. エンド・ツー・エンドのソリューションをテストする。
 
 
-### OpenShift AIのプロビジョニング
+## 1. OpenShift AIのプロビジョニング
 
-#### 1. 以下のRHDSより環境を払い出します。
-   * Base RHODS on AWS: \
-https://demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.ocp4-workshop-rhods-base-aws.prod&utm_source=webapp&utm_medium=share-link
+   1. RHDSの[RHODS on AWS](https://demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.ocp4-workshop-rhods-base-aws.prod&utm_source=webapp&utm_medium=share-link)を払い出します。
+   2. 払い出された環境へログイン
 
-#### 2. 払い出された環境へログインします。
+## 2. OpenShift AIにてデータサイエンス・プロジェクトを作成
 
-### OpenShift AIにてデータサイエンス・プロジェクトの作成
+   1. MinIOのデプロイ
 
-#### 1. MinIOのデプロイ
-
-```
+```bash
 oc new-project central
 oc apply deployment/central/minio.yaml
 ```
 
-#### 2. 必要なS3バケットの作成
+   2. 必要なS3バケットの作成
+      * MinIO UIを開く (2 routes: use _UI Route_)
+      * `minio/minio123`でログイン
+      * OpenShift AI用のバケットの作成
+        * **workbench**
+      * エッジ環境 `Edge-1` 向けのバケットを作成
+        * **edge1-data**
+        * **edge1-models**
+        * **edge1-ready**
 
-   1. MinIO UIを開く (2 routes: use _UI Route_)
-   2. `minio/minio123`でログイン
-   3. OpenShift AI用のバケットの作成
-      * **workbench**
-   4. エッジ環境向けのバケットを作成
-      * **edge1-data**
-      * **edge1-models**
-      * **edge1-ready**
+   3. 新しい *Data Science Project* を作成
+      * *Red Hat OpenShift AI*を開く
+      * 環境へログイン
+      * *Data Science Projects* を選択して、`Create data science project`をクリック
+      * Data Science Projectの名前は `tf` (TensorFlow) とする
 
-1. 新しい *Data Science Project* を作成
+   4. 新しい *Data Connection* を作成
+      * 作成した `tf` プロジェクトの配下にある `Data Connections`にて `Add data connection` をクリックし、以下のパラメータを入力する：
+        * Name: `dc1` (data connection 1)
+        * Access key: `minio`
+        * Secret key: `minio123`
+        * Endpoint: `http://minio-service.central.svc:9000`
+        * Region: `eu-west-2`
+        * Bucket: `workbench`
 
-   * *Red Hat OpenShift AI*を開く
-   * 環境へログイン
-   * *Data Science Projects* を選択して、`Create data science project`をクリック
-   * Data Science Projectの名前は `tf` (TensorFlow) とする
+   5. *Pipeline Server* の作成
+      * 作成した `tf` プロジェクトの配下にある `Pipelines`にて `Create a pipeline server` をクリックし、以下のパラメータを入力する：
+        * Existing data connection: `dc1`
+      * `Configure`をクリック
 
-2. 新しい *Data Connection* を作成
+   6. パイプラインで使用する`*PersistentVolumeClaim*`を作成
+```bash
+oc create -f deployment/pipeline/pvc.yaml
+```
 
-   Under the new `tf` project > Data connections, click `Add data connection`. \
-   Enter the following parameters:
-   * Name: `dc1` (data connection 1)
-   * Access key: `minio` 
-   * Secret key: `minio123` 
-   * Endpoint: `http://minio-service.central.svc:9000` 
-   * Region: `eu-west-2`
-   * Bucket: `workbench`
-
-3. Create a *Pipeline Server*.
-
-   Under the new `tf` project > Pipelines, click `Create a pipeline server`. \
-   Enter the following parameters:
-   * Existing data connection: `dc1`
-
-   Then click `Configure` to proceed.
-
-4. Create a '*PersistentVolumeClaim*' for the pipeline.
-
-   The PVC will enable shared storage for the pipeline's execution. \
-   Deploy the following YAML resource:
-      * **deployment/pipeline/pvc.yaml**
-
-5. Create a new *Workbench*.
-
-   Under the new `tf` project > Workbenches, click `Create workbench`. \
-   Enter the following parameters:
-   * Name: `wb1` (workbench 1)
-   * Image selection: `TensorFlow` 
-   * Container Size: `medium` 
-   * Create new persistent storage
-     * Name: `wb1`
-     * Persistent storage size: (leave default) 
-   * Use a data connection
+   7. 新しい *Workbench* を作成
+   * `tf`プロジェクト > Workbenchesと遷移し、`Create workbench`をクリックして、以下の項目を入力:
+     * Name: `wb1` (workbench 1)
+     * Image selection: `TensorFlow` 
+     * Container Size: `medium` 
+     * Create new persistent storage
+       * Name: `wb1`
+       * Persistent storage size: (leave default) 
+     * Use a data connection
      * Use existing data connection
-       * Data connection: `dc1`
+     * Data connection: `dc1`
 
-   Then click `Create workbench`
+   `Create workbench`をクリックします。
 
-6. Open the workbench (*Jupyter*).
+   8. ワークベンチが*実行*状態になったら、`開く`をクリックし、環境の認証情報を使用してログインしてください。
 
-   When your workbench is in *Running* status, click `Open`.
 
-   Log in using your environment credentials.
+## 3. AI/MLパイプラインを作成し、実行する。
 
-<br/>
-
-### Create the AI/ML Pipeline
-
-1. Upload the pipeline sources to the project tree.
+   1. パイプラインソースをJupyter Notebookへインポート
 
    > [!CAUTION] 
-   > Do not use the *'Git Clone'* feature to upload the project, you don't need to upload the big dataset of images!
+   > プロジェクトのアップロードに*'Git Clone'*を使わないでください。大きな画像のデータセットをアップロードする必要はありません！
 
-   Under the *Jupyter* menu, click the icon *'Upload Files'* and select the sources listed below:
+   以下の画像の通り、メニューバーの下にあるアイコン`Upload Files`をクリックします。
+    ![Import](./images/project-import.png)
 
-   To show the entire modelling process:
-      * **workbench/clean-01.ipynb**
+  　以下のファイルをインポートします。
+   * **workbench/clean-01.ipynb** 
+   * **workbench/pipeline/step-01.ipynb**
+   * **workbench/pipeline/step-02.ipynb**
+   * **workbench/pipeline/step-03.ipynb**
+   * **workbench/pipeline/retrain.pipeline** -> *Elyra* pipeline
 
-   To show the process segmented in pipeline steps:
-
-      * **workbench/pipeline/step-01.ipynb**
-      * **workbench/pipeline/step-02.ipynb**
-      * **workbench/pipeline/step-03.ipynb**
-
-   To show the *Elyra* pipeline definition:
-
-      * **workbench/pipeline/retrain.pipeline**
-
-   <br/>
-
-1. Export the pipeline in a *Tekton* YAML file.
-   
-   > [!TIP] 
-   > Reference to documented guidelines:
-   > * https://docs.google.com/document/d/1kcubQQuQyJGP_grbMD6Jji8o-IBDrYBbuIOREj2dFlc/edit#heading=h.wd1fnfz39nr
-
-   1. Double click on the `retrain.pipeline` resource. The pipeline will be displayed in *Elyra* (embedded visual pipeline editor in Jupyter).
-   1. Hover and click on the icon with label `Export Pipeline`.
-   1. Enter the following paramters:
-      * s3endpoint: `http://minio-service.central.svc:9000` 
-      * leave all other parameters with default values.
-   1. Click `OK`.
-
-   a. The action will produce a new file `retrain.yaml` file.
-
-   b. It will also populate your S3 bucket `workbench` with your pipeline's artifacts.
-
-1. Import the pipeline as an *OpenShift Tekton* pipeline.
-
-   From your OpenShift UI Console, navigate to Pipelines > Pipelines.
-
-   > [!TIP] 
-   > Reference to documented guidelines:
-   > * https://docs.google.com/document/d/1kcubQQuQyJGP_grbMD6Jji8o-IBDrYBbuIOREj2dFlc/edit#heading=h.pehkoctq6uk2
-
-   Ensure you're working under the `tf` project (namespace). \
-   Click `Create > Pipeline`. \
-   Use the following snippet:
-   ```yaml
-   apiVersion: tekton.dev/v1beta1
-   kind: Pipeline
-   metadata:
-     name: train-model
-     namespace: tf
-   spec:
-   
-     [Copy paste here contents under 'pipelineSpec']
-   ```
-   Complete the YAML code above with the `pipelineSpec` (around line 51) definition from your exported YAML file in Jupyter (`retrain.yaml`).
-      > [!CAUTION] 
-      > Make sure you un-tab one level the `pipelineSpec` definition to make the resource valid.
-
-   Click `Create`.
+   1. *Tekton Pipeline*のyamlファイルのエクスポート
+      * `retrain.pipeline`リソースをダブルクリックします。
+      * パイプラインが*Elyra* (Jupyterの組み込みビジュアルパイプラインエディタ)に表示されます。
+      * 以下の画像の通り、`Export Pipeline`を押下します。
+      * ![Export Pipeline](./images/export-pipeline.png)
+      * 以下の項目を入力します。
+        * s3endpoint: `http://minio-service.central.svc:9000`
+        * 他の項目はデフォルトのまま無視します。
+      * `OK`をクリック
+      * 新しく `retrain.yaml`という名前のファイルが生成されます。
+      * `retrain.yaml`内の `pipelineSpec`配下のコンテンツをコピーします。(51行目以降)
+         ```
+         ...
+         pipelineSpec:
+         ---以下以降を全てコピー--
+           params:
+           - name: s3bucket_data
+             default: edge1-data
+            ...
+         ```
+      * *OpenShift Pipelines* の Pipelineリソースを作成します。
+      * `tf` project (namespace)が選択されていることを確認します。その上で、
+        * `Create > Pipeline`を選択
+        * Yamlへコピーしたコンテンツを貼り付け:
+         ```yaml
+         apiVersion: tekton.dev/v1beta1
+         kind: Pipeline
+         metadata:
+         name: train-model
+         namespace: tf
+         spec:
+         [コピーした'pipelineSpec'配下のコンテンツを貼り付け]
+         ```
+         > [!CAUTION] 
+         > リソースを有効にするには、`pipelineSpec`定義のタブを1つ外してください。
+        * `Create`を押下
 
    You can test the pipeline by clicking `Action > Start`, accept default values and click `Start`.
 
@@ -204,7 +172,7 @@ oc apply deployment/central/minio.yaml
    * **Automatically**: Use the Camel server provided in the repository to push training data to S3. Follow the instructions under:
      * camel/central-feeder/Readme.txt
 
-1. Train the model.
+2. Train the model.
 
    When **ALL** images have been uploaded, re-run the pipeline by clicking `Action > Start`, accept default values and click `Start`.
 
