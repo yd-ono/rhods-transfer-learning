@@ -94,13 +94,14 @@ oc create -f deployment/pipeline/pvc.yaml
 ### 3. AI/MLパイプラインを作成し、実行する。
 
    1. パイプラインソースをJupyter Notebookへインポート
-      > [!CAUTION] 
-      > プロジェクトのアップロードに*'Git Clone'*を使わないでください。大きな画像のデータセットをアップロードする必要はありません！
 
-      以下の画像の通り、メニューバーの下にあるアイコン`Upload Files`をクリックします。
-      ![Import](./images/project-import.png)
+> [!CAUTION] 
+> プロジェクトのアップロードに*'Git Clone'*を使わないでください。大きな画像のデータセットをアップロードする必要はありません！
 
-   　以下のファイルをインポートします。
+   以下の画像の通り、メニューバーの下にあるアイコン`Upload Files`をクリックします。
+   ![Import](./images/project-import.png)
+
+   以下のファイルをインポートします。
    * **workbench/clean-01.ipynb** 
    * **workbench/pipeline/step-01.ipynb**
    * **workbench/pipeline/step-02.ipynb**
