@@ -141,20 +141,21 @@ oc create -f deployment/pipeline/pvc.yaml
          spec:
          [コピーした'pipelineSpec'配下のコンテンツを貼り付け]
          ```
-         > [!CAUTION] 
-         > リソースを有効にするには、`pipelineSpec`定義のタブを1つ外してください。
+> [!CAUTION] 
+> リソースを有効にするには、`pipelineSpec`定義のタブを1つ外してください。
 
-         > [!CAUTION] 
-         > 現状、Pipeline実行時にlxmlのImportエラーが出るため、各タスクへ以下を追記してください。
-         > ```bash
-         > ...
-         > sh -c "mkdir -p ./jupyter-work-dir && cd ./jupyter-work-dir"
-         > ---以下の行を各タスクのtaskSpec.steps.args配下に追記---
-         > sh -c "python3 -m pip install lxml==5.1.0"
-         > ---
-         > sh -c "echo 'Downloading file:///opt/app-root/bin/utils/bootstrapper.py' && curl --fail -H 'Cache-Control: no-cache' -L file:///opt/app-root/bin/utils/bootstrapper.py --output bootstrapper.py"
-         > ...
-         > ```
+> [!CAUTION] 
+> 現状、Pipeline実行時にlxmlのImportエラーが出るため、各タスクへ以下を追記してください。
+> ```bash
+> ...
+> sh -c "mkdir -p ./jupyter-work-dir && cd ./jupyter-work-dir"
+> ---以下の行を各タスクのtaskSpec.steps.args配下に追記---
+> sh -c "python3 -m pip install lxml==5.1.0"
+> ---
+> sh -c "echo 'Downloading file:///opt/app-root/bin/utils/bootstrapper.py' && curl --fail -H 'Cache-Control: no-cache' -L file:///opt/app-root/bin/utils/bootstrapper.py --output bootstrapper.py"
+> ...
+> ```
+
       9. `Create`を押下
 
    パイプラインをテストするには、`Action > Start` をクリックし、デフォルト値を受け入れ、`Start` をクリックします。
