@@ -31,13 +31,13 @@ OpenShift AIのアーティファクトはYAMLでは編集できません。
 6. データ取り込みシステムをデプロイする。
 7. エンド・ツー・エンドのソリューションをテストする。
 
-
-## 1. OpenShift AIのプロビジョニング
+## Central環境の準備
+### 1. OpenShift AIのプロビジョニング
 
    1. RHDSの[RHODS on AWS](https://demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.ocp4-workshop-rhods-base-aws.prod&utm_source=webapp&utm_medium=share-link)を払い出します。
    2. 払い出された環境へログイン
 
-## 2. OpenShift AIにてデータサイエンス・プロジェクトを作成
+### 2. OpenShift AIにてデータサイエンス・プロジェクトを作成
 
    1. MinIOのデプロイ
 
@@ -47,58 +47,51 @@ oc apply deployment/central/minio.yaml
 ```
 
    2. 必要なS3バケットの作成
-      * MinIO UIを開く (2 routes: use _UI Route_)
-      * `minio/minio123`でログイン
-      * OpenShift AI用のバケットの作成
-        * **workbench**
-      * エッジ環境 `Edge-1` 向けのバケットを作成
-        * **edge1-data**
-        * **edge1-models**
-        * **edge1-ready**
-
+      1. MinIO UIを開く (2 routes: use _UI Route_)
+      2. `minio/minio123`でログイン
+      3. OpenShift AI用のバケットの作成
+         1. **workbench**
+      4. エッジ環境 `Edge-1` 向けのバケットを作成
+         1. **edge1-data**
+         2. **edge1-models**
+         3. **edge1-ready**
    3. 新しい *Data Science Project* を作成
-      * *Red Hat OpenShift AI*を開く
-      * 環境へログイン
-      * *Data Science Projects* を選択して、`Create data science project`をクリック
-      * Data Science Projectの名前は `tf` (TensorFlow) とする
-
+      1. *Red Hat OpenShift AI*を開く
+      2. 環境へログイン
+      3. *Data Science Projects* を選択して、`Create data science project`をクリック
+      4. Data Science Projectの名前は `tf` (TensorFlow) とする
    4. 新しい *Data Connection* を作成
-      * 作成した `tf` プロジェクトの配下にある `Data Connections`にて `Add data connection` をクリックし、以下のパラメータを入力する：
-        * Name: `dc1` (data connection 1)
-        * Access key: `minio`
-        * Secret key: `minio123`
-        * Endpoint: `http://minio-service.central.svc:9000`
-        * Region: `eu-west-2`
-        * Bucket: `workbench`
-
+      1. 作成した `tf` プロジェクトの配下にある `Data Connections`にて `Add data connection` をクリックし、以下のパラメータを入力する：
+         1. Name: `dc1` (data connection 1)
+         2. Access key: `minio`
+         3. Secret key: `minio123`
+         4. Endpoint: `http://minio-service.central.svc:9000`
+         5. Region: `eu-west-2`
+         6. Bucket: `workbench`
    5. *Pipeline Server* の作成
-      * 作成した `tf` プロジェクトの配下にある `Pipelines`にて `Create a pipeline server` をクリックし、以下のパラメータを入力する：
-        * Existing data connection: `dc1`
-      * `Configure`をクリック
-
+      1. 作成した `tf` プロジェクトの配下にある `Pipelines`にて `Create a pipeline server` をクリックし、以下のパラメータを入力する：
+         1. Existing data connection: `dc1`
+      2. `Configure`をクリック
    6. パイプラインで使用する`*PersistentVolumeClaim*`を作成
 ```bash
 oc create -f deployment/pipeline/pvc.yaml
 ```
-
    7. 新しい *Workbench* を作成
-   * `tf`プロジェクト > Workbenchesと遷移し、`Create workbench`をクリックして、以下の項目を入力:
-     * Name: `wb1` (workbench 1)
-     * Image selection: `TensorFlow` 
-     * Container Size: `medium` 
-     * Create new persistent storage
-       * Name: `wb1`
-       * Persistent storage size: (leave default) 
-     * Use a data connection
-     * Use existing data connection
-     * Data connection: `dc1`
-
-   `Create workbench`をクリックします。
+      1. `tf`プロジェクト > Workbenchesと遷移し、`Create workbench`をクリックして、以下の項目を入力:
+         1. Name: `wb1` (workbench 1)
+         2. Image selection: `TensorFlow` 
+         3. Container Size: `medium` 
+         4. PVを作成
+            1. Name: `wb1`
+            2. Persistent storage size: (default)
+         5. Use a data connectionを選択
+         6. Use existing data connectionを選択
+            1. Data connection: `dc1`
+      2. `Create workbench`をクリックします。
 
    8. ワークベンチが*実行*状態になったら、`開く`をクリックし、環境の認証情報を使用してログインしてください。
 
-
-## 3. AI/MLパイプラインを作成し、実行する。
+### 3. AI/MLパイプラインを作成し、実行する。
 
    1. パイプラインソースをJupyter Notebookへインポート
 
@@ -115,17 +108,17 @@ oc create -f deployment/pipeline/pvc.yaml
    * **workbench/pipeline/step-03.ipynb**
    * **workbench/pipeline/retrain.pipeline** -> *Elyra* pipeline
 
-   1. *Tekton Pipeline*のyamlファイルのエクスポート
-      * `retrain.pipeline`リソースをダブルクリックします。
-      * パイプラインが*Elyra* (Jupyterの組み込みビジュアルパイプラインエディタ)に表示されます。
-      * 以下の画像の通り、`Export Pipeline`を押下します。
-      * ![Export Pipeline](./images/export-pipeline.png)
-      * 以下の項目を入力します。
-        * s3endpoint: `http://minio-service.central.svc:9000`
-        * 他の項目はデフォルトのまま無視します。
-      * `OK`をクリック
-      * 新しく `retrain.yaml`という名前のファイルが生成されます。
-      * `retrain.yaml`内の `pipelineSpec`配下のコンテンツをコピーします。(51行目以降)
+   2. *Tekton Pipeline*のyamlファイルのエクスポート
+      1. `retrain.pipeline`リソースをダブルクリックします。
+      2. パイプラインが*Elyra* (Jupyterの組み込みビジュアルパイプラインエディタ)に表示されます。
+      3. 以下の画像の通り、`Export Pipeline`を押下します。
+         ![Export Pipeline](./images/export-pipeline.png)
+      4. 以下の項目を入力します。
+         1. s3endpoint: `http://minio-service.central.svc:9000`
+         2. 他の項目はデフォルトのまま無視します。
+         3. `OK`をクリック
+      5. 新しく `retrain.yaml`という名前のファイルが生成されます。
+      6. `retrain.yaml`内の `pipelineSpec`配下のコンテンツをコピーします。(51行目以降)
          ```
          ...
          pipelineSpec:
@@ -135,10 +128,10 @@ oc create -f deployment/pipeline/pvc.yaml
              default: edge1-data
             ...
          ```
-      * *OpenShift Pipelines* の Pipelineリソースを作成します。
-      * `tf` project (namespace)が選択されていることを確認します。その上で、
-        * `Create > Pipeline`を選択
-        * Yamlへコピーしたコンテンツを貼り付け:
+      7. *OpenShift Pipelines* の Pipelineリソースを作成します。
+      8. `tf` project (namespace)が選択されていることを確認します。その上で、
+         1. `Create > Pipeline`を選択
+         2. Yamlへコピーしたコンテンツを貼り付け:
          ```yaml
          apiVersion: tekton.dev/v1beta1
          kind: Pipeline
@@ -150,123 +143,103 @@ oc create -f deployment/pipeline/pvc.yaml
          ```
          > [!CAUTION] 
          > リソースを有効にするには、`pipelineSpec`定義のタブを1つ外してください。
-        * `Create`を押下
 
-   You can test the pipeline by clicking `Action > Start`, accept default values and click `Start`.
+         > [!CAUTION] 
+         > 現状、Pipeline実行時にlxmlのImportエラーが出るため、各タスクへ以下を追記してください。
+         > ```bash
+         > ...
+         > sh -c "mkdir -p ./jupyter-work-dir && cd ./jupyter-work-dir"
+         > ---以下の行を各タスクのtaskSpec.steps.args配下に追記---
+         > sh -c "python3 -m pip install lxml==5.1.0"
+         > ---
+         > sh -c "echo 'Downloading file:///opt/app-root/bin/utils/bootstrapper.py' && curl --fail -H 'Cache-Control: no-cache' -L file:///opt/app-root/bin/utils/bootstrapper.py --output bootstrapper.py"
+         > ...
+         > ```
+      9. `Create`を押下
 
-   You should see the pipeline <u>**FAIL**</u> because there is no trainable data available just yet.
+   パイプラインをテストするには、`Action > Start` をクリックし、デフォルト値を受け入れ、`Start` をクリックします。
+   現時点ではバケットに学習用データが存在しないため、パイプラインが <u>**FAIL**</u> と表示されるはずです。
 
-   Note
-   現状、Pipeline実行時にlxmlのImportエラーが出るため、各タスクへ以下を追記する
-   sh -c "python3 -m pip install lxml==5.1.0"
+   1. MinIOへ学習用データのアップロード
+      1. MinIOのUIコンソールを使って画像ファイルをアップロードします。
+         1. 画像ファイルは以下のフォルダに格納されています。フォルダごとアップロードしてください。
+            1. `dataset/images`
+         2. `edge1-data` バケットにアップロードします。(全ての画像ファイルが完全にアップロードされるまで待ちましょう)
 
-1. Upload training data to S3.
-
-   There are two options to upload training data:
-   * **Manually (recommended)**: Use Minio's UI console to upload the images (training data):
-     * From the project's folder:
-       * dataset/images
-     * To the root of the S3 bucket:
-       * `edge1-data` \
-       (wait for all images to be fully uploaded)
-   * **Automatically**: Use the Camel server provided in the repository to push training data to S3. Follow the instructions under:
-     * camel/central-feeder/Readme.txt
-
-2. Train the model.
-
-   When **ALL** images have been uploaded, re-run the pipeline by clicking `Action > Start`, accept default values and click `Start`.
-
-   You should now see the pipeline succeed. It will push the new model to the following buckets:
-   * `edge1-models`
-   * `edge1-ready`
-
-<br/>
-
-### Prepare the *Edge1* environment
-
-1. Create a new *OpenShift* project `edge1`.
+   2. モデルの学習
+      1. すべての画像のアップロードが完了したら、`Action > Start` をクリックしてパイプラインを再実行し、デフォルトの値で `Start` をクリックします。これでパイプラインが成功するはずです。パイプラインは新しいモデルを以下のバケットにプッシュします。
+         1. `edge1-models`
+         2. `edge1-ready`
 
 
-1. Deploy an *AMQ Broker*
-    
-    AMQ is used to enable MQTT connectivity with edge devices and manage monitoring events.
-
-    1. Install the AMQ Broker Operator:
-        * AMQ Broker for RHEL 8 (Multiarch)
-
-        Install in `edge1` namespace (specific) \
-        **NOT cluster wide**
-    1. Create a new ***ActiveMQ Artemis*** (amq broker instance) \
-    Use the YAML defined under:
-        * **deployment/edge/amq-broker.yaml**
-    
-    1. Create a route to enable external MQTT communication (demo Mobile App)
-        ```
-        oc create route edge broker-amq-mqtt --service broker-amq-mqtt-0-svc
-        ```
-
-1. Deploy a *Minio* instance on the (near) edge.
-
-   1. In the `edge1` namespace use the following YAML resource to create the *Minio* instance:
-      * **deployment/edge/minio.yaml**
-   1. In the new *Minio* instance create the following buckets:
-      * **production** (live AI/ML models)
-      * **data** (training data)
-      * **valid** (data from valid inferences)
-      * **unclassified** (data from invalid inferences)
-
-1. Create a local service to access the `central` S3 storage with *Service Interconnect*.
-
-   Follow the instructions below:
-
-   1. Install *Service Interconnect*'s  CLI \
-      (you can use an embedded terminal from the OCP's console)
+## *Edge1* 環境を準備
+### 1. AMQ Brokerの作成
+   1. 新しい *OpenShift* project `edge1`を作成
+   2. *AMQ Broker*をデプロイ
+      1. AMQは、エッジ・デバイスとのMQTT接続を可能にし、モニタリング・イベントを管理するために使用されます。
+   3. AMQ Broker Operatorをインストール
+      1. AMQ Broker for RHEL 8 (Multiarch)
+         1. `edge1` namespace (specific)へインストールします。
+         2. **cluster wideではありません**
+   4. ***ActiveMQ Artemis*** (amq broker instance) を作成
+      ``` bash
+      oc apply -f deployment/edge/amq-broker.yaml**
       ```
+   5. デモのモバイルアプリがアクセスするために、Routeを作成
+      ```bash
+      oc create route edge broker-amq-mqtt --service broker-amq-mqtt-0-svc
+      ```
+
+### 2. *Minio* の作成
+   1. `edge1` namespaceを使用し、以下のYAMLをapply
+      ```bash
+      oc apply -f deployment/edge/minio.yaml
+      ```
+   2. *Minio* のUIコンソールにて以下のバケットを作成
+      1. **production** (live AI/ML models)
+      2. **data** (training data)
+      3. **valid** (data from valid inferences)
+      4. **unclassified** (data from invalid inferences)
+
+### 3. Servie Interconnectのデプロイ
+
+*Service Interconnect*を使用して、`Central`のS3ストレージにアクセスするローカルサービスを作成します。
+
+   1. *Service Interconnect* のCLIをインストール
+      ``` bash
       curl https://skupper.io/install.sh | sh
-      ```
-      ```
       export PATH="/home/user/.local/bin:$PATH"
       ```
-   1. Initialize *SI* in `central` and create a connection token:
-      ```
+   2. `central` namespaceで *Service Interconnect* をイニシャライズ
+      ``` bash
       oc project central
-      ```
-      ```
       skupper init --enable-console --enable-flow-collector --console-auth unsecured
       ```
-      ```
+   3. `central` namespace接続用のトークンを作成
+      ``` bash
       skupper token create edge_to_central.token
       ```
-
-
-    1. Initialize *SI* in `edge1` and create the connection using the token we created earlier:
-        ```
-        oc project edge1
-        ```
-        ```
-        skupper init
-        ```
-        ```
+    4. `edge1`namespaceで *Service Interconnect* をイニシャライズ
+      ``` bash
+      oc project edge1
+      skupper init
+      ```
+    5. `edge1` namespaceと`central` namespaceを接続するリンクを生成
+        ``` bash
         skupper link create edge_to_central.token --name edge-to-central
         ```
-
-    1. Expose the S3 storage service (*Minio*) from `central` on *SI*'s network using annotations:
-        ```
+    6. S3 storage service (*Minio*)を `central` namespaceから `edge1` namespaceへ公開
+        ``` bash
         oc project central
-        ```
-        ```
         kubectl annotate service minio-service skupper.io/proxy=http skupper.io/address=minio-central
         ```
-    1. Test the SI service. \
-       You can test the service from `edge1` with a Route:
+    7. 接続テスト
        ```
        oc project edge1
        oc create route edge --service=minio-central --port=port9090
        ```
-       Try opening (central) Minio's console using the newly created route `minio-central`. Make sure the buckets you see are the ones from `central`. \
-       You can delete the route after validating the service is healthy.
-     
-<br/>
+       新しく作成したRoute `minio-central` を使って Minio のコンソールを開いてみてください。表示されるバケットが `central` のものであることを確認してください。
+       サービスが正常であることを確認したら、ルートを削除できます。
 
 ### Deliver the AI/ML model and run the ML server
 
@@ -515,12 +488,17 @@ Under the `edge1` namespace, perform the following actions:
    Use the route URL to connect from a browser.
 
 
-https://camel-edge-edge1.apps.demo.sandbox1117.opentlc.com/monitor.html
-https://camel-edge-edge1.apps.demo.sandbox1117.opentlc.com/admin.html
+https://[camel-edgeのRouteのURL]/monitor.html
+https://[camel-edgeのRouteのURL]/admin.html
 
 
-## Filestash
-```
+## [おまけ] Filestashのインストール
+
+[Filestash](https://www.filestash.app/)を使用することで、MinIO上のバケットに格納された画像ファイルを視覚的に確認することができます。
+
+以下のようにHelmからインストールできます。
+
+```bash
 oc project edge1
 helm repo add filestash https://sebagarayco.github.io/helm-filestash
 helm search repo filestash
@@ -529,8 +507,14 @@ oc adm policy add-scc-to-user anyuid -z filestash
 oc expose service filestash -n edge1
 ```
 
+FilestashのRouteへアクセスし、S3への接続設定でMinIOのエンドポイントとユーザ名、パスワードを指定すると以下のようにバケット内のデータへアクセスできます。
+
+![filestash](./images/filestash.png)
+
 ## AKHQ
-```
+[AKHQ](https://akhq.io/)は、Kafka上のTopicに書き込まれたデータを確認できるGUIツールです。以下のようにHelmからインストールできます。
+
+```bash
 oc project central
 helm repo add akhq https://akhq.io/
 helm inspect values akhq/akhq
